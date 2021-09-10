@@ -620,15 +620,6 @@ contract BWVToken is Ownable, IBEP20 {
         _totalSupply = 1000000000000000000;
         _totalHolders = 0;
 
-        IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(routerAddress);
-
-        // Create a uniswap pair for this new token
-        uniswapV2Pair = IUniswapV2Factory(_uniswapV2Router.factory())
-            .createPair(address(this), _uniswapV2Router.WETH());
-
-        // set the rest of the contract variables
-        uniswapV2Router = _uniswapV2Router;
-
         _balances[msg.sender] = _totalSupply;
         emit Transfer(address(0), _msgSender(), _totalSupply);
     }
