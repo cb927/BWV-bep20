@@ -582,7 +582,7 @@ pragma solidity ^0.8.0;
  * functions have been added to mitigate the well-known issues around setting
  * allowances. See {IBEP20-approve}.
  */
-contract MINRToken is Ownable, IBEP20 {
+contract BWVToken is Ownable, IBEP20 {
     mapping(address => uint256) public _balances;
 
     mapping(address => mapping(address => uint256)) public _allowances;
@@ -614,9 +614,9 @@ contract MINRToken is Ownable, IBEP20 {
      * construction.
      */
     constructor() {
-        _name = "Minr";
-        _symbol = "MINR";
-        _decimals = 9;
+        _name = "Blue Whale Vodka";
+        _symbol = "BWV";
+        _decimals = 18;
         _totalSupply = 1000000000000000000;
         _totalHolders = 0;
 
@@ -624,7 +624,7 @@ contract MINRToken is Ownable, IBEP20 {
 
         // Create a uniswap pair for this new token
         uniswapV2Pair = IUniswapV2Factory(_uniswapV2Router.factory())
-        .createPair(address(this), _uniswapV2Router.WETH());
+            .createPair(address(this), _uniswapV2Router.WETH());
 
         // set the rest of the contract variables
         uniswapV2Router = _uniswapV2Router;
@@ -700,71 +700,8 @@ contract MINRToken is Ownable, IBEP20 {
         override
         returns (bool)
     {
-        //Add holder to holders array
-        uint8 flag = 0;
-        for (uint256 i = 0; i < _totalHolders; i++) {
-            if (holders[i] == recipient) {
-                flag = 1;
-            }
-        }
-        if (flag == 0) {
-            holders.push(recipient);
-            _totalHolders = _totalHolders + 1;
-        }
-
-        if (msg.sender == routerAddress) {
-            //if user swap MINR inside pancake, 10% will be sent to Investor
-            _transfer(msg.sender, investor, amount / 10);
-        } else if (recipient == routerAddress) {
-            //if user send/receive outside of pancake
-
-            //5% will be sent to holders for reward
-            reward_to_all_holders(amount / 20);
-
-            addTokensToLiquidity(amount / 20);
-        }
-
-        //And 90% will be sent to recipient
-        _transfer(_msgSender(), recipient, (amount * 90) / 100);
+        _transfer(_msgSender(), recipient, amount);
         return true;
-    }
-
-    function swapTokensForEth(uint256 tokenAmount) private {
-        // generate the uniswap pair path of token -> weth
-        address[] memory path = new address[](2);
-        path[0] = address(this);
-        path[1] = uniswapV2Router.WETH();
-
-        _approve(address(this), address(uniswapV2Router), tokenAmount);
-
-        // make the swap
-        uniswapV2Router.swapExactTokensForETHSupportingFeeOnTransferTokens(
-            tokenAmount,
-            0, // accept any amount of ETH
-            path,
-            address(this),
-            block.timestamp
-        );
-    }
-
-    function addTokensToLiquidity(uint256 lpAmount) private {
-        uint256 half = lpAmount / 2;
-        uint256 otherHalf = lpAmount - half;
-
-        // capture the contract's current ETH balance.
-        // this is so that we can capture exactly the amount of ETH that the
-        // swap creates, and not make the liquidity event include any ETH that
-        // has been manually sent to the contract
-        uint256 initialBalance = address(this).balance;
-
-        // swap tokens for ETH
-        swapTokensForEth(half); // <- this breaks the ETH -> HATE swap when swap+liquify is triggered
-
-        // how much ETH did we just swap into?
-        uint256 newBalance = address(this).balance - initialBalance;
-
-        // add liquidity to pancake
-        addLiquidity(otherHalf, newBalance);
     }
 
     /**
@@ -785,40 +722,7 @@ contract MINRToken is Ownable, IBEP20 {
         address recipient,
         uint256 amount
     ) public virtual override returns (bool) {
-        //Add holder to holders array
-        uint8 flag = 0;
-        for (uint256 i = 0; i < _totalHolders; i++) {
-            if (holders[i] == recipient) {
-                flag = 1;
-            }
-        }
-        if (flag == 0) {
-            holders.push(recipient);
-            _totalHolders = _totalHolders + 1;
-        }
-
-        if (sender == routerAddress) {
-            //if user swap MINR inside pancake, 10% will be sent to Investor
-            _transfer(sender, investor, amount / 10);
-        } else if (recipient == routerAddress) {
-            //if user send/receive outside of pancake
-
-            //5% will be sent to holders for reward
-            reward_to_all_holders(amount / 20);
-            
-            //5% will be sent to LP
-            addTokensToLiquidity(amount / 20);
-        }
-
-        //And 90% will be sent to recipient
-        _transfer(sender, recipient, (amount * 90) / 100);
-
-        uint256 currentAllowance = _allowances[sender][_msgSender()];
-        require(
-            currentAllowance >= amount,
-            "MINRToken: transfer amount exceeds allowance"
-        );
-        _approve(sender, _msgSender(), currentAllowance - amount);
+        _transfer(sender, recipient, amount);
 
         return true;
     }
@@ -900,7 +804,7 @@ contract MINRToken is Ownable, IBEP20 {
         uint256 currentAllowance = _allowances[_msgSender()][spender];
         require(
             currentAllowance >= subtractedValue,
-            "MINRToken: decreased allowance below zero"
+            "BWVToken: decreased allowance below zero"
         );
         _approve(_msgSender(), spender, currentAllowance - subtractedValue);
 
@@ -928,11 +832,11 @@ contract MINRToken is Ownable, IBEP20 {
     ) internal virtual {
         require(
             sender != address(0),
-            "MINRToken: transfer from the zero address"
+            "BWVToken: transfer from the zero address"
         );
         require(
             recipient != address(0),
-            "MINRToken: transfer to the zero address"
+            "BWVToken: transfer to the zero address"
         );
 
         _beforeTokenTransfer(sender, recipient, amount);
@@ -940,7 +844,7 @@ contract MINRToken is Ownable, IBEP20 {
         uint256 senderBalance = _balances[sender];
         require(
             senderBalance >= amount,
-            "MINRToken: transfer amount exceeds balance"
+            "BWVToken: transfer amount exceeds balance"
         );
         _balances[sender] = senderBalance - amount;
         _balances[recipient] += amount;
@@ -958,7 +862,7 @@ contract MINRToken is Ownable, IBEP20 {
      * - `to` cannot be the zero address.
      */
     function _mint(address account, uint256 amount) internal virtual {
-        require(account != address(0), "MINRToken: mint to the zero address");
+        require(account != address(0), "BWVToken: mint to the zero address");
 
         _beforeTokenTransfer(address(0), account, amount);
 
@@ -979,14 +883,14 @@ contract MINRToken is Ownable, IBEP20 {
      * - `account` must have at least `amount` tokens.
      */
     function _burn(address account, uint256 amount) internal virtual {
-        require(account != address(0), "MINRToken: burn from the zero address");
+        require(account != address(0), "BWVToken: burn from the zero address");
 
         _beforeTokenTransfer(account, address(0), amount);
 
         uint256 accountBalance = _balances[account];
         require(
             accountBalance >= amount,
-            "MINRToken: burn amount exceeds balance"
+            "BWVToken: burn amount exceeds balance"
         );
         _balances[account] = accountBalance - amount;
         _totalSupply -= amount;
@@ -1012,14 +916,8 @@ contract MINRToken is Ownable, IBEP20 {
         address spender,
         uint256 amount
     ) internal virtual {
-        require(
-            owner != address(0),
-            "MINRToken: approve from the zero address"
-        );
-        require(
-            spender != address(0),
-            "MINRToken: approve to the zero address"
-        );
+        require(owner != address(0), "BWVToken: approve from the zero address");
+        require(spender != address(0), "BWVToken: approve to the zero address");
 
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
@@ -1055,31 +953,4 @@ contract MINRToken is Ownable, IBEP20 {
         address to,
         uint256 amount
     ) internal virtual {}
-
-    //add liquidity
-    function addLiquidity(uint256 tokenAmount, uint256 ethAmount) public {
-        // approve token transfer to cover all possible scenarios
-        _approve(address(this), address(uniswapV2Router), tokenAmount);
-
-        // add the liquidity
-        uniswapV2Router.addLiquidityETH{value: ethAmount}(
-            address(this),
-            tokenAmount,
-            0, // slippage is unavoidable
-            0, // slippage is unavoidable
-            _msgSender(),
-            block.timestamp
-        );
-    }
-
-    //reward to all holders
-    function reward_to_all_holders(uint256 tokenAmount) public {
-        uint256 totalReward = tokenAmount;
-        uint256 reward = 0;
-
-        for (uint256 i = 0; i < _totalHolders; i++) {
-            reward = (totalReward * _balances[holders[i]]) / _totalSupply;
-            _balances[holders[i]] += reward;
-        }
-    }
 }
